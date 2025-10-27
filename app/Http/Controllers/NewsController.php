@@ -38,27 +38,51 @@ class NewsController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:jpg,png,pdf,docx,jpeg,mp4,avi,mkv,mov,wmv,flv,webm,ogg,3gp,3g2,|max:50048',
-        ], [
-            'file.max' => 'Ukuran file tidak boleh lebih dari 50MB.',
-        ]);
+        if (!$request->hasFile('file')) {
+            dd('GAGAL: Request tidak menemukan file.');
+        }
 
         $file = $request->file('file');
-        $filePath = $file->store('uploads', 'public');
+
+        if (!$file->isValid()) {
+            dd('GAGAL: File tidak valid. Error PHP: ' . $file->getErrorMessage());
+        }
+
+        $destinationPath = storage_path('app/public/uploads');
+
+        $fileName = $file->getClientOriginalName();
+
+  
+        if (!file_exists($destinationPath)) {
+            try {
+                mkdir($destinationPath, 0775, true);
+            } catch (\Exception $e) {
+                dd('GAGAL SAAT MEMBUAT FOLDER: ' . $destinationPath . '. Error: ' . $e->getMessage());
+            }
+        }
+
+        try {
+
+            $file->move($destinationPath, $fileName);
+        } catch (\Exception $e) {
+            dd(
+                'GAGAL SAAT MEMINDAHKAN FILE (move)!',
+                'Error: ' . $e->getMessage(),
+                'Path Tujuan: ' . $destinationPath,
+                'Nama File: ' . $fileName
+            );
+        }
+
+        $relativePath = 'uploads/' . $fileName;
 
         news::create([
-            'file' => $file->getClientOriginalName(),
-            'file_path' => $filePath,
+            'file' => $fileName, 
+            'file_path' => $relativePath, 
         ]);
 
-        // Update timestamp
         Cache::put('last_update', now());
-
-        // Mengembalikan respons, misalnya redirect atau JSON response
         return redirect()->route('user.admin')->with(['success' => 'Data Berhasil Disimpan!']);
     }
-
     /**
      * Display the specified resource.
      */

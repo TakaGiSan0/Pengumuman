@@ -195,7 +195,7 @@
         let lastUpdated = new Date().toISOString();
 
         function checkForUpdates() {
-            fetch('/api/last-updated')
+            fetch("{{ url('api/last-updated') }}")
                 .then(response => response.json())
                 .then(data => {
                     if (new Date(data.last_updated) > new Date(lastUpdated)) {
